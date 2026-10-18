@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Car Parking System</title>
+  <!-- Google Fonts: Manrope with system-ui fallback -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Import map for Three.js v0.160.0 from jsDelivr CDN -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- SCREEN 1: WELCOME / LOADING -->
+  <section id="welcome-screen" class="screen welcome-screen" aria-live="polite">
+    <div class="welcome-box">
+      <div class="spinner-container" aria-hidden="true">
+        <div class="spinner-ring"></div>
+        <!-- Medium-size car icon (64px inline SVG) inside the spinner ring -->
+        <svg class="welcome-car-icon" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 36L17.5 21C18.4 18.6 20.7 17 23.2 17H40.8C43.3 17 45.6 18.6 46.5 21L52 36" stroke="#2ec4b6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="8" y="34" width="48" height="14" rx="4" fill="#172230" stroke="#2ec4b6" stroke-width="3"/>
+          <circle cx="18" cy="48" r="5" fill="#0f1720" stroke="#e8eef5" stroke-width="3"/>
+          <circle cx="46" cy="48" r="5" fill="#0f1720" stroke="#e8eef5" stroke-width="3"/>
+          <path d="M14 40H20" stroke="#2ec4b6" stroke-width="3" stroke-linecap="round"/>
+          <path d="M44 40H50" stroke="#2ec4b6" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1 class="welcome-title">Welcome to Smart Car Parking</h1>
+      <p id="welcome-status" class="welcome-sub">Loading 3D environment and vehicle model...</p>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: SETUP -->
+  <section id="setup-screen" class="screen setup-screen hidden" aria-labelledby="setup-heading">
+    <div class="setup-card">
+      <div class="setup-header">
+        <div class="brand-badge" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2ec4b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="4"/>
+            <path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>
+          </svg>
+        </div>
+        <div>
+          <h1 id="setup-heading" class="setup-title">Configure Parking Lot</h1>
+          <p class="setup-subtitle">Enter total slot capacity to build a symmetric 3D parking lot.</p>
+        </div>
+      </div>
+
+      <form id="setup-form" class="setup-form" novalidate>
+        <div class="form-group">
+          <label for="capacity-input" class="form-label">Parking Capacity (1 to 40)</label>
+          <input
+            type="text"
+            id="capacity-input"
+            class="form-input"
+            placeholder="e.g. 12"
+            inputmode="numeric"
+            autocomplete="off"
+          />
+        </div>
+
+        <div id="setup-message" class="message-box hidden" role="status" aria-live="polite"></div>
+
+        <div class="setup-actions">
+          <button type="submit" id="create-parking-btn" class="btn btn-primary">
+            Create Parking
+          </button>
+          <button type="button" id="setup-try-again-btn" class="btn btn-secondary hidden">
+            Try again
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- SCREEN 3: DASHBOARD -->
+  <div id="dashboard-screen" class="dashboard-screen hidden">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="top-bar-brand">
+        <div class="logo-box" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2ec4b6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/>
+            <circle cx="6.5" cy="16.5" r="2.5"/>
+            <circle cx="16.5" cy="16.5" r="2.5"/>
+          </svg>
+        </div>
+        <span class="app-title">Smart Car Parking</span>
+      </div>
+
+      <div class="top-bar-right">
+        <div id="model-warning-badge" class="warning-chip hidden" title="assets/car.glb was not found. Using built-in 3D fallback car.">
+          Fallback 3D Car Active
+        </div>
+        <span id="capacity-chip" class="capacity-chip">Capacity: 0</span>
+        <button type="button" id="new-parking-btn" class="btn btn-danger">
+          New Parking
+        </button>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Content -->
+    <main class="dashboard-main">
+      <!-- Left Panel (300px on desktop): Car Control -->
+      <aside class="panel left-panel" aria-labelledby="control-panel-title">
+        <h2 id="control-panel-title" class="panel-title">Car Control</h2>
+
+        <div class="form-group">
+          <label for="car-id-input" class="form-label">Car ID</label>
+          <input
+            type="text"
+            id="car-id-input"
+            class="form-input"
+            placeholder="LEA-123"
+            maxlength="7"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <span class="field-hint">Format: 3 capital letters, dash, 3 digits (e.g. LEA-123)</span>
+        </div>
+
+        <div class="control-buttons">
+          <button type="button" id="enter-car-btn" class="btn btn-primary">
+            Enter
+          </button>
+          <button type="button" id="exit-car-btn" class="btn btn-outline">
+            Exit
+          </button>
+        </div>
+
+        <div id="control-message" class="message-box" role="status" aria-live="polite">
+          Ready. Enter a Car ID above.
+        </div>
+
+        <!-- Three Stat Tiles -->
+        <div class="stats-grid">
+          <div class="stat-tile">
+            <span class="stat-label">Total</span>
+            <strong id="stat-total" class="stat-value">0</strong>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-label">Occupied</span>
+            <strong id="stat-occupied" class="stat-value">0</strong>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-label">Available</span>
+            <strong id="stat-available" class="stat-value">0</strong>
+          </div>
+        </div>
+
+        <!-- Occupancy Progress Bar -->
+        <div class="occupancy-box">
+          <div class="occupancy-header">
+            <span class="occupancy-label">Occupancy</span>
+            <strong id="occupancy-percent" class="occupancy-percent">0%</strong>
+          </div>
+          <div class="progress-track" role="progressbar" id="occupancy-progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="occupancy-fill" class="progress-fill"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center 3D View (flexible) -->
+      <section class="center-panel" aria-labelledby="viewport-title">
+        <div class="viewport-header">
+          <div class="viewport-title-group">
+            <h2 id="viewport-title" class="panel-title">Parking Area - 3D View</h2>
+            <span class="viewport-hint">Scroll or pinch to zoom</span>
+          </div>
+          <div class="zoom-controls">
+            <button type="button" id="zoom-in-btn" class="btn btn-icon" aria-label="Zoom in">
+              +
+            </button>
+            <button type="button" id="zoom-out-btn" class="btn btn-icon" aria-label="Zoom out">
+              &minus;
+            </button>
+            <button type="button" id="zoom-fit-btn" class="btn btn-secondary btn-fit" aria-label="Fit parking lot in view">
+              Fit
+            </button>
+          </div>
+        </div>
+
+        <div id="canvas-container" class="canvas-container">
+          <!-- Three.js WebGLCanvas is appended here -->
+          <section id="car-details-popup" class="car-details-popup hidden" role="dialog" aria-modal="false" aria-labelledby="car-popup-id">
+            <div class="car-popup-header">
+              <div><span class="car-popup-label">Parked vehicle</span><h3 id="car-popup-id"></h3></div>
+              <button type="button" id="car-popup-close" class="car-popup-close" aria-label="Close car details">&times;</button>
+            </div>
+            <div class="car-popup-details">
+              <div><span>Parking slot</span><strong id="car-popup-slot"></strong></div>
+              <div><span>Entry time</span><strong id="car-popup-time"></strong></div>
+              <div><span>Car color</span><strong class="car-popup-color-value"><i id="car-popup-swatch" aria-label="Car color"></i></strong></div>
+            </div>
+            <button type="button" id="car-popup-exit" class="btn btn-danger car-popup-exit">Exit Car</button>
+          </section>
+          <div class="viewport-legend" aria-label="Slot status legend">
+            <span class="legend-item">
+              <span class="legend-dot legend-free"></span> Free
+            </span>
+            <span class="legend-item">
+              <span class="legend-dot legend-occupied"></span> Occupied
+            </span>
+            <span class="legend-item">
+              <span class="legend-dot legend-target"></span> Target slot
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel (320px on desktop): Parking Records -->
+      <aside class="panel right-panel" aria-labelledby="records-panel-title">
+        <div class="records-header">
+          <h2 id="records-panel-title" class="panel-title">Parking Records</h2>
+          <span id="records-count-badge" class="records-badge">0</span>
+        </div>
+        <p class="records-sub">Click a record to highlight the car and focus the camera.</p>
+        <div id="records-list" class="records-list" role="list">
+          <!-- Populated dynamically by ui.js -->
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Confirmation Modal for "New Parking" -->
+  <div id="confirm-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="modal-card">
+      <h3 id="confirm-modal-title" class="modal-title">Reset Parking Lot?</h3>
+      <p class="modal-text">
+        This will remove all currently parked cars, clear saved records, and return to the parking setup screen.
+      </p>
+      <div class="modal-actions">
+        <button type="button" id="confirm-cancel-btn" class="btn btn-secondary">
+          Cancel
+        </button>
+        <button type="button" id="confirm-accept-btn" class="btn btn-danger">
+          Yes, Clear Everything
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
