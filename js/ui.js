@@ -46,6 +46,11 @@ export class ParkingUI {
     this.carPopupSwatch = document.getElementById('car-popup-swatch');
     this.carPopupCloseBtn = document.getElementById('car-popup-close');
     this.carPopupExitBtn = document.getElementById('car-popup-exit');
+    document.addEventListener('pointerdown', (event) => {
+      if (!this.carDetailsPopup.classList.contains('hidden') && !this.carDetailsPopup.contains(event.target)) {
+        this.hideCarDetails();
+      }
+    });
 
     // Right panel records
     this.recordsCountBadge = document.getElementById('records-count-badge');

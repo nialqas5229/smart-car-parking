@@ -957,7 +957,7 @@ export class ParkingScene {
         // Finalize exact parked position and orientation
         carGroup.position.set(slot.x, 0, slot.z);
         carGroup.rotation.y = slot.facingYaw;
-        this.pulseSlotHighlight(slotId, 'occupied');
+        this.setSlotVisualState(slotId, 'occupied');
         resolve();
         return true;
       };
