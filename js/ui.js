@@ -142,12 +142,10 @@ export class ParkingUI {
     clearTimeout(this.controlMessageTimer);
     this.controlMessage.textContent = text;
     this.controlMessage.className = `message-box msg-${type}`;
-    if (type === 'success') {
-      this.controlMessageTimer = setTimeout(() => {
-        this.controlMessage.textContent = '';
-        this.controlMessage.className = 'message-box hidden';
-      }, 2000);
-    }
+    this.controlMessageTimer = setTimeout(() => {
+      this.controlMessage.textContent = '';
+      this.controlMessage.className = 'message-box hidden';
+    }, 2000);
   }
 
   /**
